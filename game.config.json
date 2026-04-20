@@ -1,0 +1,20 @@
+{
+  "schema": "3",
+  "fields": {
+    "screen": {
+      "width": 500,
+      "height": "max",
+      "orientations": ["portrait"],
+      "fit": "contain"
+    },
+    "platforms": {
+      "yandex": {
+        "enabled": true
+      }
+    }
+  },
+  "entry": "index.html",
+  "cache": {
+    "assets/*": [".png", ".jpg", ".json", ".js", ".css", ".html"]
+  }
+}

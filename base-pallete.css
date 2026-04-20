@@ -1,0 +1,9 @@
+:root {
+  --bg: #1a1a1a;
+  --dirt: #8B5A2B;      --dirt-top: #9C6B3A;
+  --stone: #757575;     --stone-top: #8A8A8A;
+  --grass: #5D8C3E;     --grass-top: #6EA84D;
+  --wood: #6B4226;      --wood-top: #7D4E2E;
+  --gold: #FFC107;      --ui-border: #2D2D2D;
+  --pixel: image-rendering: pixelated;
+}

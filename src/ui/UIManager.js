@@ -56,7 +56,7 @@ export class UIManager {
     screen.className = 'screen select-size-screen';
     
     let buttonsHtml = GRID_SIZES.map(size => {
-      const multiplier = size === 8 ? 'x0.8' : size === 12 ? 'x1.2' : 'x1.0';
+      const multiplier = size === 8 ? 'x1.2' : size === 12 ? 'x0.8' : 'x1.0';
       return `
         <button class="btn btn-size" data-size="${size}">
           ${size}×${size}

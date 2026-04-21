@@ -86,7 +86,7 @@ class BlockPuzzleApp {
       this.renderer.render(this.game);
     }
     
-    requestAnimationFrame(() => this.gameLoop());
+    requestAnimationFrame(this.gameLoop.bind(this));
   }
 }
 

@@ -8,7 +8,7 @@ export class AssetManager {
 
   async load() {
     const loadPromises = Object.entries(BLOCK_ASSETS).map(([type, filename]) => {
-      return this.loadTexture(type, `assets/${filename}`);
+      return this.loadTexture(parseInt(type), `assets/${filename}`);
     });
     
     loadPromises.push(this.loadTexture('empty', 'assets/tab_items.png'));

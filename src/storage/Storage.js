@@ -35,6 +35,10 @@ export class Storage {
     return this.bestScores[gridSize] || 0;
   }
 
+  getGlobalBest() {
+    return Math.max(...Object.values(this.bestScores));
+  }
+
   updateBestScore(gridSize, score) {
     if (score > this.bestScores[gridSize]) {
       this.bestScores[gridSize] = score;

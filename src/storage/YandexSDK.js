@@ -1,8 +1,47 @@
+export const TRANSLATIONS = {
+  ru: {
+    title: 'BLOCK PUZZLE',
+    subtitle: 'Minecraft Edition',
+    start: 'ИГРАТЬ',
+    selectGrid: 'ВЫБЕРИ РАЗМЕР',
+    back: 'НАЗАД',
+    score: 'СЧЁТ',
+    lines: 'ЛИНИИ',
+    gameOver: 'ИГРА ОКОНЧЕНА',
+    playAgain: 'ЕЩЁ РАЗ',
+    mainMenu: 'ГЛАВНОЕ МЕНЮ',
+    newBest: 'НОВЫЙ РЕКОРД!',
+    bestScore: 'ЛУЧШИЙ',
+    grid8: '8×8',
+    grid10: '10×10',
+    grid12: '12×12'
+  },
+  en: {
+    title: 'BLOCK PUZZLE',
+    subtitle: 'Minecraft Edition',
+    start: 'START',
+    selectGrid: 'SELECT GRID',
+    back: 'BACK',
+    score: 'SCORE',
+    lines: 'LINES',
+    gameOver: 'GAME OVER',
+    playAgain: 'PLAY AGAIN',
+    mainMenu: 'MAIN MENU',
+    newBest: 'NEW HIGH SCORE!',
+    bestScore: 'BEST',
+    grid8: '8×8',
+    grid10: '10×10',
+    grid12: '12×12'
+  }
+};
+
 export class YandexSDK {
   constructor() {
     this.ysdk = null;
     this.player = null;
     this.initialized = false;
+    this.lang = 'en';
+    this._t = TRANSLATIONS.en;
   }
 
   async init() {
@@ -12,18 +51,35 @@ export class YandexSDK {
           .then(ysdk => {
             this.ysdk = ysdk;
             this.initialized = true;
-            console.log('Yandex SDK initialized');
+            
+            try {
+              const envLang = ysdk.environment?.i18n?.lang;
+              if (envLang && TRANSLATIONS[envLang]) {
+                this.lang = envLang;
+                this._t = TRANSLATIONS[envLang];
+              }
+            } catch (e) {
+              console.warn('Could not get lang from environment');
+            }
+            
+            console.log('Yandex SDK initialized, lang:', this.lang);
             resolve(true);
           })
           .catch(err => {
             console.warn('Yandex SDK init failed:', err);
+            this._t = TRANSLATIONS.en;
             resolve(false);
           });
       } else {
-        console.warn('YaGames SDK not found');
+        console.warn('YaGames SDK not found, using default lang');
+        this._t = TRANSLATIONS.en;
         resolve(false);
       }
     });
+  }
+
+  t(key) {
+    return this._t[key] || TRANSLATIONS.en[key] || key;
   }
 
   isAvailable() {
@@ -58,7 +114,7 @@ export class YandexSDK {
     if (!lb) return false;
     
     try {
-      await lb.setLeaderboardScore('blockpuzzle', score);
+      await lb.setLeaderboardScore('scores', score);
       return true;
     } catch (e) {
       console.warn('Set leaderboard score failed:', e);
@@ -71,7 +127,7 @@ export class YandexSDK {
     if (!lb) return null;
     
     try {
-      return await lb.getLeaderboardEntries('blockpuzzle', {
+      return await lb.getLeaderboardEntries('scores', {
         quantityAround: 3,
         quantityTop: 3
       });

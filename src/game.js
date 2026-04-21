@@ -49,7 +49,8 @@ class BlockPuzzleApp {
     });
     
     this.game.on('gameOver', ({ score, linesCleared, boardSize }) => {
-      const bonusMultiplier = boardSize / 10;
+      const multipliers = { 8: 1.2, 10: 1.0, 12: 0.8 };
+      const bonusMultiplier = multipliers[boardSize] || 1.0;
       const finalScore = Math.floor(score * bonusMultiplier);
       
       this.uiManager.showGameOver(finalScore, linesCleared, boardSize);

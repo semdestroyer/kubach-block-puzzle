@@ -313,20 +313,17 @@ this.ctx.fillStyle = '#8B8B8B';
     const centerX = this.canvas.width / 2;
     
     this.ctx.fillStyle = 'rgba(26, 26, 26, 0.8)';
-    this.ctx.fillRect(centerX - 60, 8, 120, 40);
+    this.ctx.fillRect(centerX - 50, 8, 100, 35);
     this.ctx.strokeStyle = '#373737';
     this.ctx.lineWidth = 2;
-    this.ctx.strokeRect(centerX - 60, 8, 120, 40);
+    this.ctx.strokeRect(centerX - 50, 8, 100, 35);
     
     this.ctx.shadowColor = '#000000';
     this.ctx.shadowBlur = 4;
     this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.font = 'bold 14px "Press Start 2P", monospace';
+    this.ctx.font = 'bold 18px "Press Start 2P", monospace';
     this.ctx.textAlign = 'center';
     this.ctx.fillText(`${score}`, centerX, 32);
-    this.ctx.font = '4px "Press Start 2P", monospace';
-    this.ctx.fillStyle = '#AAAAAA';
-    this.ctx.fillText('SCORE', centerX, 42);
     this.ctx.shadowBlur = 0;
   }
 

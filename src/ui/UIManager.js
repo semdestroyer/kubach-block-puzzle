@@ -2,9 +2,10 @@ import { GRID_SIZES } from '../core/Constants.js';
 import { Storage } from '../storage/Storage.js';
 
 export class UIManager {
-  constructor(game) {
+  constructor(game, yandexSDK = null) {
     this.game = game;
     this.storage = new Storage();
+    this.yandexSDK = yandexSDK;
     this.container = null;
     this.screens = {};
   }
@@ -35,8 +36,8 @@ export class UIManager {
       <h2 class="subtitle">Minecraft Edition</h2>
       <button class="btn btn-primary" id="startBtn">START GAME</button>
       <div class="best-scores">
-        <h3>Best Scores</h3>
-        <div class="scores-list" id="bestScoresList"></div>
+        <h3>Best Score</h3>
+        <div class="score-value" id="bestScoreValue">0</div>
       </div>
     `;
     
@@ -44,6 +45,8 @@ export class UIManager {
     startBtn.addEventListener('click', () => {
       this.showScreen('selectSize');
     });
+    
+    this.updateBestScore('bestScoreValue');
     
     return screen;
   }
@@ -53,21 +56,21 @@ export class UIManager {
     screen.className = 'screen select-size-screen';
     
     let buttonsHtml = GRID_SIZES.map(size => {
-      const best = this.storage.getBestScore(size);
+      const multiplier = size === 8 ? 'x0.8' : size === 12 ? 'x1.2' : 'x1.0';
       return `
         <button class="btn btn-size" data-size="${size}">
           ${size}×${size}
-          <span class="best">Best: ${best}</span>
+          <span class="multiplier">(${multiplier})</span>
         </button>
       `;
     }).join('');
     
     screen.innerHTML = `
-      <h2>Select Grid Size</h2>
+      <h2>SELECT GRID SIZE</h2>
       <div class="size-buttons">
         ${buttonsHtml}
       </div>
-      <button class="btn btn-back" id="backToMenu">← Back</button>
+      <button class="btn btn-back" id="backToMenu">← BACK</button>
     `;
     
     screen.querySelectorAll('.btn-size').forEach(btn => {
@@ -92,19 +95,21 @@ export class UIManager {
     screen.innerHTML = `
       <h2>GAME OVER</h2>
       <div class="final-score">
-        <span class="label">Score:</span>
+        <span class="label">SCORE</span>
         <span class="value" id="finalScore">0</span>
       </div>
       <div class="lines-cleared">
-        <span class="label">Lines:</span>
+        <span class="label">LINES</span>
         <span class="value" id="linesCleared">0</span>
       </div>
-      <div class="new-best" id="newBest" style="display: none;">NEW BEST!</div>
+      <div class="new-best" id="newBest" style="display: none;">NEW HIGH SCORE!</div>
       <button class="btn btn-primary" id="playAgainBtn">PLAY AGAIN</button>
       <button class="btn btn-back" id="toMenuBtn">MAIN MENU</button>
     `;
     
     screen.querySelector('#playAgainBtn').addEventListener('click', () => {
+      const size = this.game.getGridSize();
+      this.game.startGame(size);
       this.hideAllScreens();
     });
     
@@ -115,29 +120,19 @@ export class UIManager {
     return screen;
   }
 
-  updateBestScoresList() {
-    if (!this.screens.menu) return;
-    const list = this.screens.menu.querySelector('#bestScoresList');
-    if (!list) return;
-    
-    list.innerHTML = GRID_SIZES.map(size => 
-      `<div class="score-item"><span>${size}×${size}:</span><span>${this.storage.getBestScore(size)}</span></div>`
-    ).join('');
+  async updateBestScore(elementId) {
+    const bestScore = this.storage.getBestScore(10);
+    const elements = document.querySelectorAll(`#${elementId}`);
+    elements.forEach(el => {
+      if (el) el.textContent = bestScore;
+    });
   }
 
   showScreen(screenName) {
     this.hideAllScreens();
     
     if (screenName === 'menu') {
-      this.updateBestScoresList();
-    }
-    
-    if (screenName === 'selectSize') {
-      const buttons = this.screens.selectSize.querySelectorAll('.btn-size');
-      buttons.forEach(btn => {
-        const size = parseInt(btn.dataset.size);
-        btn.querySelector('.best').textContent = `Best: ${this.storage.getBestScore(size)}`;
-      });
+      this.updateBestScore('bestScoreValue');
     }
     
     if (this.screens[screenName]) {
@@ -159,7 +154,7 @@ export class UIManager {
     const isNewBest = this.storage.updateBestScore(gridSize, score);
     screen.querySelector('#newBest').style.display = isNewBest ? 'block' : 'none';
     
-    this.updateBestScoresList();
+    this.updateBestScore('bestScoreValue');
     this.showScreen('gameOver');
   }
 

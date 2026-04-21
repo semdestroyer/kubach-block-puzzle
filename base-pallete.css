@@ -1,9 +1,34 @@
 :root {
   --bg: #1a1a1a;
-  --dirt: #8B5A2B;      --dirt-top: #9C6B3A;
-  --stone: #757575;     --stone-top: #8A8A8A;
-  --grass: #5D8C3E;     --grass-top: #6EA84D;
-  --wood: #6B4226;      --wood-top: #7D4E2E;
-  --gold: #FFC107;      --ui-border: #2D2D2D;
+  --bg-light: #2a2a2a;
+  --bg-dark: #0a0a0a;
+  
+  --dirt: #8B5A2B;
+  --dirt-top: #9C6B3A;
+  --stone: #757575;
+  --stone-top: #8A8A8A;
+  --grass: #5D8C3E;
+  --grass-top: #6EA84D;
+  --wood: #6B4226;
+  --wood-top: #7D4E2E;
+  
+  --gold: #FFC107;
+  --gold-light: #FFD54F;
+  --emerald: #50C878;
+  --redstone: #FF3333;
+  --lapis: #1E90FF;
+  
+  --ui-border: #2D2D2D;
+  --ui-border-light: #444444;
+  --ui-text: #ffffff;
+  --ui-text-dim: #888888;
+  
+  --slot-bg: #2a2a2a;
+  --slot-border: #444444;
+  --slot-hover: #3a3a3a;
+  
+  --valid-place: rgba(255, 255, 255, 0.5);
+  --invalid-place: rgba(255, 50, 50, 0.5);
+  
   --pixel: image-rendering: pixelated;
 }

@@ -9,7 +9,6 @@ export class InputHandler {
     this.dragPiece = null;
     this.dragPieceIndex = -1;
     this.dragStartPos = { x: 0, y: 0 };
-    this.previewPositions = [];
     this.blockTypes = [BLOCK_TYPES.STONE, BLOCK_TYPES.GOLD, BLOCK_TYPES.REDSTONE];
     
     this.setupEventListeners();
@@ -22,46 +21,47 @@ export class InputHandler {
     this.canvas.addEventListener('pointercancel', this.onPointerUp.bind(this));
   }
 
-  updatePreviewPositions() {
+  getClosestPiece(x, y) {
     const pieces = this.game.getCurrentPieces();
-    if (!pieces) return;
+    if (!pieces || pieces.length === 0) return null;
     
-    this.previewPositions = [];
-    const spacing = this.canvas.width / 3;
-    const y = this.canvas.height - 120;
+    const previewSize = this.renderer.cellSize * 0.9;
+    const areaY = this.canvas.height - 80;
+    const areaHeight = 70;
+    const areaWidth = this.canvas.width;
+    
+    let closest = null;
+    let minDist = Infinity;
     
     pieces.forEach((piece, index) => {
-      const x = spacing * (index + 1) - UI_CONFIG.PIECE_PREVIEW_SIZE * piece.getWidth() / 2;
-      this.previewPositions.push({ x, y, width: piece.getWidth(), height: piece.getHeight() });
-    });
-  }
-
-  getPieceAtPosition(x, y) {
-    const pieces = this.game.getCurrentPieces();
-    
-    for (let i = 0; i < this.previewPositions.length; i++) {
-      const pos = this.previewPositions[i];
-      const cellSize = UI_CONFIG.PIECE_PREVIEW_SIZE;
-      const width = pos.width * cellSize;
-      const height = pos.height * cellSize;
+      const spacing = areaWidth / 4;
+      const centerX = spacing * (index + 1.5);
+      const centerY = areaY + areaHeight / 2;
       
-      if (x >= pos.x && x <= pos.x + width &&
-          y >= pos.y && y <= pos.y + height) {
-        return { piece: pieces[i], index: i };
+      const dist = Math.hypot(x - centerX, y - centerY);
+      
+      if (dist < minDist) {
+        minDist = dist;
+        closest = { piece, index, centerX, centerY };
       }
+    });
+    
+    const threshold = 100;
+    if (minDist < threshold) {
+      return closest;
     }
+    
     return null;
   }
 
   onPointerDown(e) {
     if (this.game.getState() !== 'playing') return;
     
-    this.updatePreviewPositions();
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    const hit = this.getPieceAtPosition(x, y);
+    const hit = this.getClosestPiece(x, y);
     if (hit) {
       this.isDragging = true;
       this.dragPiece = hit.piece;
@@ -79,12 +79,14 @@ export class InputHandler {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    const cellSize = UI_CONFIG.GRID_CELL_SIZE;
+    const board = this.game.getBoard();
+    this.renderer.updateSnappedPosition(x, y, board);
+    
     this.renderer.setDragPiece(
       this.dragPiece, 
       this.blockTypes[this.dragPieceIndex], 
-      x - cellSize, 
-      y - cellSize
+      x - this.renderer.cellSize / 2, 
+      y - this.renderer.cellSize / 2
     );
   }
 
@@ -95,13 +97,14 @@ export class InputHandler {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    const gridPos = this.renderer.getGridPosition(x, y, this.game.getBoard().size);
+    const board = this.game.getBoard();
+    const snappedPos = this.renderer.updateSnappedPosition(x, y, board);
     
-    if (gridPos && this.game.canPlacePiece(this.dragPiece, gridPos.x, gridPos.y)) {
+    if (snappedPos && this.renderer.isValidPlacement) {
       this.game.placePiece(
         this.dragPiece, 
-        gridPos.x, 
-        gridPos.y, 
+        snappedPos.x, 
+        snappedPos.y, 
         this.blockTypes[this.dragPieceIndex]
       );
     }

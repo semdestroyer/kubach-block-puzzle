@@ -91,6 +91,42 @@
       transform: translate(2px, 2px);
     }
 
+    .audio-controls {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+      display: flex;
+      gap: 6px;
+      z-index: 30;
+    }
+
+    .audio-toggle {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 3px solid #2D2D2D;
+      background: #6EA84D;
+      color: #FFFFFF;
+      box-shadow: 0 3px 0 #5D8C3E;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .audio-toggle:active {
+      transform: translate(1px, 1px);
+      box-shadow: 0 2px 0 #5D8C3E;
+    }
+
+    .audio-toggle.is-off {
+      background: #757575;
+      color: #D4D4D4;
+      box-shadow: 0 3px 0 #555555;
+      opacity: 0.78;
+    }
+
     .btn-primary {
       background: #6EA84D;
       color: #ffffff;

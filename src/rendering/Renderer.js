@@ -1,5 +1,6 @@
 import { UI_CONFIG, BLOCK_TYPES } from '../core/Constants.js';
 import { AssetManager } from './AssetManager.js';
+import { ParticleSystem } from './ParticleSystem.js';
 
 export class Renderer {
   constructor(canvas) {
@@ -18,6 +19,7 @@ export class Renderer {
     this.snappedPosition = null;
     this.isValidPlacement = false;
     this.gridSize = 10;
+    this.particleSystem = new ParticleSystem();
   }
 
   async init() {
@@ -327,6 +329,85 @@ this.ctx.fillStyle = '#8B8B8B';
     this.ctx.shadowBlur = 0;
   }
 
+  updateEffects(deltaTime) {
+    this.particleSystem.update(deltaTime);
+  }
+
+  getCellCenter(x, y) {
+    return {
+      x: this.gridOffsetX + x * (this.cellSize + UI_CONFIG.GRID_GAP) + this.cellSize / 2,
+      y: this.gridOffsetY + y * (this.cellSize + UI_CONFIG.GRID_GAP) + this.cellSize / 2
+    };
+  }
+
+  spawnPlacementParticles(cells, blockType) {
+    if (!cells || cells.length === 0) return;
+
+    const isRedstone = blockType === BLOCK_TYPES.REDSTONE;
+    cells.forEach(cell => {
+      const center = this.getCellCenter(cell.x, cell.y);
+      this.particleSystem.spawn(isRedstone ? 'redstone' : 'dust', center.x, center.y, {
+        count: isRedstone ? 7 : 5,
+        spread: this.cellSize * 0.6,
+        speed: isRedstone ? 90 : 55,
+        size: Math.max(7, this.cellSize * 0.25),
+        life: isRedstone ? 0.45 : 0.5,
+        lift: isRedstone ? 30 : 10,
+        gravity: isRedstone ? 18 : 55
+      });
+    });
+  }
+
+  spawnLineClearParticles(rows, cols) {
+    const total = (rows?.length || 0) + (cols?.length || 0);
+    if (total === 0) return;
+
+    rows.forEach(row => {
+      for (let x = 0; x < this.gridSize; x++) {
+        const center = this.getCellCenter(x, row);
+        this.particleSystem.spawn('bubble', center.x, center.y, {
+          count: 2,
+          spread: this.cellSize * 0.45,
+          speed: 65,
+          size: Math.max(8, this.cellSize * 0.28),
+          life: 0.75,
+          lift: 45,
+          gravity: 5
+        });
+      }
+    });
+
+    cols.forEach(col => {
+      for (let y = 0; y < this.gridSize; y++) {
+        const center = this.getCellCenter(col, y);
+        this.particleSystem.spawn('puff', center.x, center.y, {
+          count: 2,
+          spread: this.cellSize * 0.45,
+          speed: 55,
+          size: Math.max(8, this.cellSize * 0.28),
+          life: 0.65,
+          lift: 25,
+          gravity: 20
+        });
+      }
+    });
+  }
+
+  spawnFirework(x = this.canvas.width / 2, y = this.canvas.height * 0.28) {
+    this.particleSystem.burst('firework', x, y, {
+      count: 42,
+      speed: 155,
+      size: Math.max(9, this.cellSize * 0.32),
+      life: 0.9,
+      gravity: 20,
+      spread: 6
+    });
+  }
+
+  drawParticles() {
+    this.particleSystem.draw(this.ctx, this.assetManager.getTexture('particles'));
+  }
+
   render(game) {
     this.clear();
     
@@ -341,6 +422,7 @@ this.ctx.fillStyle = '#8B8B8B';
       BLOCK_TYPES.REDSTONE
     ];
     this.drawPiecePreview(pieces, blockTypes);
+    this.drawParticles();
     
     this.drawDragPiece();
   }

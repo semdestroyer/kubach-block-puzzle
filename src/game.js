@@ -3,6 +3,7 @@ import { Renderer } from './rendering/Renderer.js';
 import { InputHandler } from './input/InputHandler.js';
 import { UIManager } from './ui/UIManager.js';
 import { YandexSDK } from './storage/YandexSDK.js';
+import { AudioManager } from './audio/AudioManager.js';
 
 class BlockPuzzleApp {
   constructor() {
@@ -11,7 +12,9 @@ class BlockPuzzleApp {
     this.inputHandler = null;
     this.uiManager = null;
     this.yandexSDK = new YandexSDK();
+    this.audioManager = new AudioManager();
     this.isRunning = false;
+    this.lastFrameTime = performance.now();
   }
 
   async init() {
@@ -20,17 +23,19 @@ class BlockPuzzleApp {
     const canvas = document.getElementById('game-canvas');
     
     await this.yandexSDK.init();
+    this.audioManager.preload();
     
     this.renderer = new Renderer(canvas);
     await this.renderer.init();
     
-    this.uiManager = new UIManager(this.game, this.yandexSDK);
+    this.uiManager = new UIManager(this.game, this.yandexSDK, this.audioManager);
     this.uiManager.init(container);
     this.uiManager.updateAllTranslations();
     
-    this.inputHandler = new InputHandler(canvas, this.game, this.renderer);
+    this.inputHandler = new InputHandler(canvas, this.game, this.renderer, this.audioManager);
     
     this.setupGameCallbacks();
+    this.setupPlatformCallbacks();
     this.game.start();
     
     if (loadingScreen) {
@@ -48,6 +53,9 @@ class BlockPuzzleApp {
         this.uiManager.hideAllScreens();
         const board = this.game.getBoard();
         this.renderer.setGridSize(board.size);
+        this.yandexSDK.gameplayStart();
+      } else {
+        this.yandexSDK.gameplayStop();
       }
     });
     
@@ -56,7 +64,12 @@ class BlockPuzzleApp {
       const bonusMultiplier = multipliers[boardSize] || 1.0;
       const finalScore = Math.floor(score * bonusMultiplier);
       
-      this.uiManager.showGameOver(finalScore, linesCleared, boardSize);
+      const isNewBest = this.uiManager.showGameOver(finalScore, linesCleared, boardSize);
+      this.audioManager.playSfx('gameOver', { volume: 0.35, rate: 0.85 });
+      if (isNewBest) {
+        this.audioManager.playSfx('newBest', { volume: 0.45, rate: 1.08 });
+        this.renderer.spawnFirework();
+      }
       
       if (this.yandexSDK.isAvailable()) {
         this.yandexSDK.setLeaderboardScore(finalScore);
@@ -67,10 +80,40 @@ class BlockPuzzleApp {
     this.game.on('gameStart', ({ pieces, boardSize }) => {
       this.renderer.setGridSize(boardSize);
       this.renderer.setPieces(pieces);
+      this.audioManager.startMusic();
     });
     
-    this.game.on('piecePlaced', ({ pieces }) => {
+    this.game.on('piecePlaced', ({ pieces, cells, blockType }) => {
       this.renderer.setPieces(pieces);
+      this.audioManager.playBlockPlace(blockType);
+      this.renderer.spawnPlacementParticles(cells, blockType);
+    });
+
+    this.game.on('piecesGenerated', ({ pieces }) => {
+      this.renderer.setPieces(pieces);
+    });
+
+    this.game.on('linesCleared', ({ rows, cols, points }) => {
+      const lineCount = rows.length + cols.length;
+      this.audioManager.playLineClear(lineCount, points);
+      this.renderer.spawnLineClearParticles(rows, cols);
+      if (lineCount >= 3 || points >= 600) {
+        this.renderer.spawnFirework();
+      }
+    });
+  }
+
+  setupPlatformCallbacks() {
+    this.yandexSDK.onPause(() => {
+      this.audioManager.handlePlatformPause();
+      this.yandexSDK.gameplayStop();
+    });
+
+    this.yandexSDK.onResume(() => {
+      this.audioManager.handlePlatformResume();
+      if (this.game.getState() === GameState.PLAYING) {
+        this.yandexSDK.gameplayStart();
+      }
     });
   }
 
@@ -85,7 +128,11 @@ class BlockPuzzleApp {
     }
   }
 
-  gameLoop() {
+  gameLoop(now = performance.now()) {
+    const deltaTime = Math.min(0.05, (now - this.lastFrameTime) / 1000);
+    this.lastFrameTime = now;
+    this.renderer.updateEffects(deltaTime);
+
     if (this.game.getState() === GameState.PLAYING) {
       this.renderer.render(this.game);
     }

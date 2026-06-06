@@ -72,10 +72,25 @@ export class Game {
     }
 
     this.score += piece.getCells().length;
+    const placedCells = piece.getCells().map(cell => ({
+      x: x + cell.x,
+      y: y + cell.y
+    }));
+
+    this.emit('piecePlaced', {
+      score: this.score,
+      pieces: this.currentPieces,
+      cells: placedCells,
+      blockType
+    });
+
     this.checkAndClearLines();
     
     if (this.currentPieces.length === 0) {
       this.currentPieces = this.pieceGenerator.generatePieces(3);
+      this.emit('piecesGenerated', {
+        pieces: this.currentPieces
+      });
     }
 
     if (!this.board.hasPossibleMoves(this.currentPieces)) {
@@ -83,10 +98,6 @@ export class Game {
       return true;
     }
 
-    this.emit('piecePlaced', { 
-      score: this.score,
-      pieces: this.currentPieces 
-    });
     return true;
   }
 

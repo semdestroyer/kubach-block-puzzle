@@ -12,6 +12,7 @@ export class AssetManager {
     });
     
     loadPromises.push(this.loadTexture('empty', 'assets/tab_items.png'));
+    loadPromises.push(this.loadTexture('particles', 'assets/particles.png'));
     
     await Promise.all(loadPromises);
   }

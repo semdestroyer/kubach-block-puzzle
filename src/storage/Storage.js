@@ -52,14 +52,21 @@ export class Storage {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       if (data) {
-        return JSON.parse(data);
+        return this.normalizeSettings(JSON.parse(data));
       }
     } catch (e) {
       console.warn('Failed to load settings:', e);
     }
+    return this.normalizeSettings({});
+  }
+
+  normalizeSettings(settings) {
     return {
       soundEnabled: true,
-      vibrationEnabled: true
+      musicEnabled: true,
+      sfxEnabled: true,
+      vibrationEnabled: true,
+      ...settings
     };
   }
 
@@ -78,6 +85,24 @@ export class Storage {
 
   isSoundEnabled() {
     return this.settings.soundEnabled;
+  }
+
+  setMusicEnabled(enabled) {
+    this.settings.musicEnabled = enabled;
+    this.saveSettings();
+  }
+
+  isMusicEnabled() {
+    return this.settings.musicEnabled;
+  }
+
+  setSfxEnabled(enabled) {
+    this.settings.sfxEnabled = enabled;
+    this.saveSettings();
+  }
+
+  isSfxEnabled() {
+    return this.settings.sfxEnabled;
   }
 
   setVibrationEnabled(enabled) {

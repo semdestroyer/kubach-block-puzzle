@@ -14,7 +14,12 @@ export const TRANSLATIONS = {
     bestScore: 'ЛУЧШИЙ',
     grid8: '8×8',
     grid10: '10×10',
-    grid12: '12×12'
+    grid12: '12×12',
+    soundMaster: 'Звук',
+    music: 'Музыка',
+    sfx: 'Эффекты',
+    soundOn: 'вкл',
+    soundOff: 'выкл'
   },
   en: {
     title: 'Blockle',
@@ -31,7 +36,12 @@ export const TRANSLATIONS = {
     bestScore: 'BEST',
     grid8: '8×8',
     grid10: '10×10',
-    grid12: '12×12'
+    grid12: '12×12',
+    soundMaster: 'Sound',
+    music: 'Music',
+    sfx: 'Effects',
+    soundOn: 'on',
+    soundOff: 'off'
   }
 };
 
@@ -42,16 +52,23 @@ export class YandexSDK {
     this.initialized = false;
     this.lang = 'en';
     this._t = TRANSLATIONS.en;
+    this.pauseCallbacks = new Set();
+    this.resumeCallbacks = new Set();
+    this.isPaused = false;
+    this.browserEventsBound = false;
   }
 
   async init() {
+    this.setupBrowserPauseEvents();
+
     return new Promise((resolve) => {
       if (window.YaGames) {
         window.YaGames.init({})
           .then(ysdk => {
             this.ysdk = ysdk;
             this.initialized = true;
-            
+            this.setupYandexPauseEvents();
+
             try {
               const envLang = ysdk.environment.i18n.lang;
               if (envLang && TRANSLATIONS[envLang]) {
@@ -63,7 +80,7 @@ export class YandexSDK {
             } catch (e) {
               this.detectBrowserLang();
             }
-            
+
             console.log('Yandex SDK initialized, lang:', this.lang);
             resolve(true);
           })
@@ -78,6 +95,58 @@ export class YandexSDK {
         resolve(false);
       }
     });
+  }
+
+  setupYandexPauseEvents() {
+    if (!this.ysdk?.on) return;
+
+    this.ysdk.on('game_api_pause', () => {
+      this.handlePlatformPause();
+    });
+    this.ysdk.on('game_api_resume', () => {
+      this.handlePlatformResume();
+    });
+  }
+
+  setupBrowserPauseEvents() {
+    if (this.browserEventsBound) return;
+    this.browserEventsBound = true;
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.handlePlatformPause();
+      } else {
+        this.handlePlatformResume();
+      }
+    });
+
+    window.addEventListener('blur', () => this.handlePlatformPause());
+    window.addEventListener('focus', () => {
+      if (!document.hidden) {
+        this.handlePlatformResume();
+      }
+    });
+    window.addEventListener('pagehide', () => this.handlePlatformPause());
+  }
+
+  handlePlatformPause() {
+    if (this.isPaused) return;
+    this.isPaused = true;
+    this.pauseCallbacks.forEach(callback => callback());
+  }
+
+  handlePlatformResume() {
+    if (!this.isPaused) return;
+    this.isPaused = false;
+    this.resumeCallbacks.forEach(callback => callback());
+  }
+
+  onPause(callback) {
+    this.pauseCallbacks.add(callback);
+  }
+
+  onResume(callback) {
+    this.resumeCallbacks.add(callback);
   }
 
   detectBrowserLang() {
@@ -99,6 +168,22 @@ export class YandexSDK {
     }
   }
 
+  gameplayStart() {
+    try {
+      this.ysdk?.features?.GameplayAPI?.start();
+    } catch (e) {
+      console.warn('GameplayAPI start failed:', e);
+    }
+  }
+
+  gameplayStop() {
+    try {
+      this.ysdk?.features?.GameplayAPI?.stop();
+    } catch (e) {
+      console.warn('GameplayAPI stop failed:', e);
+    }
+  }
+
   t(key) {
     return this._t[key] || TRANSLATIONS.en[key] || key;
   }
@@ -109,7 +194,7 @@ export class YandexSDK {
 
   async getPlayer() {
     if (!this.isAvailable()) return null;
-    
+
     try {
       this.player = await this.ysdk.getPlayer();
       return this.player;
@@ -121,7 +206,7 @@ export class YandexSDK {
 
   async getLeaderboards() {
     if (!this.isAvailable()) return null;
-    
+
     try {
       return await this.ysdk.getLeaderboards();
     } catch (e) {
@@ -133,7 +218,7 @@ export class YandexSDK {
   async setLeaderboardScore(score) {
     const lb = await this.getLeaderboards();
     if (!lb) return false;
-    
+
     try {
       await lb.setLeaderboardScore('scores', score);
       return true;
@@ -146,7 +231,7 @@ export class YandexSDK {
   async getLeaderboardEntries() {
     const lb = await this.getLeaderboards();
     if (!lb) return null;
-    
+
     try {
       return await lb.getLeaderboardEntries('scores', {
         quantityAround: 3,
@@ -160,8 +245,9 @@ export class YandexSDK {
 
   async showInterstitial() {
     if (!this.isAvailable()) return;
-    
+
     try {
+      this.gameplayStop();
       await this.ysdk.interstitial.show();
     } catch (e) {
       console.warn('Interstitial show failed:', e);
@@ -170,7 +256,7 @@ export class YandexSDK {
 
   async canShowInterstitial() {
     if (!this.isAvailable()) return false;
-    
+
     try {
       return await this.ysdk.canShowInterstitial();
     } catch (e) {
@@ -180,13 +266,15 @@ export class YandexSDK {
 
   async showRewardedVideo() {
     if (!this.isAvailable()) return false;
-    
+
     try {
+      this.gameplayStop();
       await this.ysdk.adv.showRewardedVideo({
         callbacks: {
-          onOpen: () => {},
-          onClose: (wasShown) => {},
-          onError: (e) => {},
+          onOpen: () => this.handlePlatformPause(),
+          onClose: () => this.handlePlatformResume(),
+          onError: () => this.handlePlatformResume(),
+          onRewarded: () => {},
           onCryptoTickerOk: () => {},
           onCryptoTickerError: () => {}
         }
@@ -194,6 +282,7 @@ export class YandexSDK {
       return true;
     } catch (e) {
       console.warn('Rewarded video failed:', e);
+      this.handlePlatformResume();
       return false;
     }
   }

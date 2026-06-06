@@ -1,10 +1,11 @@
 import { UI_CONFIG, BLOCK_TYPES } from '../core/Constants.js';
 
 export class InputHandler {
-  constructor(canvas, game, renderer) {
+  constructor(canvas, game, renderer, audioManager = null) {
     this.canvas = canvas;
     this.game = game;
     this.renderer = renderer;
+    this.audioManager = audioManager;
     this.isDragging = false;
     this.dragPiece = null;
     this.dragPieceIndex = -1;
@@ -55,6 +56,8 @@ export class InputHandler {
   }
 
   onPointerDown(e) {
+    this.audioManager?.unlock();
+
     if (this.game.getState() !== 'playing') return;
     
     const rect = this.canvas.getBoundingClientRect();
@@ -67,6 +70,7 @@ export class InputHandler {
       this.dragPiece = hit.piece;
       this.dragPieceIndex = hit.index;
       this.dragStartPos = { x, y };
+      this.audioManager?.playSfx('pickup', { volume: 0.28, rate: 1.15 });
       
       this.canvas.setPointerCapture(e.pointerId);
     }
@@ -107,6 +111,8 @@ export class InputHandler {
         snappedPos.y, 
         this.blockTypes[this.dragPieceIndex]
       );
+    } else {
+      this.audioManager?.playSfx('invalid', { volume: 0.25, rate: 0.85 });
     }
     
     this.isDragging = false;

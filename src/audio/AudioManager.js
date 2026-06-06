@@ -1,7 +1,13 @@
 import { BLOCK_TYPES } from '../core/Constants.js';
 import { Storage } from '../storage/Storage.js';
 
-const MUSIC_TRACKS = [];
+const MUSIC_TRACKS = [
+  'assets/music/minecraft-style/Gentle Breeze.ogg',
+  'assets/music/minecraft-style/Cuddle Clouds.ogg',
+  "assets/music/minecraft-style/Wanderer's Tale.ogg",
+  'assets/music/minecraft-style/Sunlight Through Leaves.ogg',
+  'assets/music/minecraft-style/What Clouds Are Made Of.ogg'
+];
 const MUSIC_FADE_MS = 3000;
 const MUSIC_GAP_MS = [30000, 90000];
 

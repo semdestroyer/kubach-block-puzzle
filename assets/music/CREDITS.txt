@@ -1,5 +1,18 @@
-heavenly-loop.ogg
-Source: https://opengameart.org/content/heavenly-loop
-Title: Heavenly Loop
-Author: isaiah658
-License: CC0
+Active playlist:
+- Gentle Breeze.ogg
+- Cuddle Clouds.ogg
+- Wanderer's Tale.ogg
+- Sunlight Through Leaves.ogg
+- What Clouds Are Made Of.ogg
+
+Source: https://pizzadoggy.itch.io/minecraft-style-music
+Pack: Minecraft Style Music
+Author: Pizza Doggy
+License: CC0 v1.0
+
+Unused fallback:
+- heavenly-loop.ogg
+  Source: https://opengameart.org/content/heavenly-loop
+  Title: Heavenly Loop
+  Author: isaiah658
+  License: CC0

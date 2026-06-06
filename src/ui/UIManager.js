@@ -173,9 +173,14 @@ export class UIManager {
     this.audioControls.className = 'audio-controls';
     this.audioControls.innerHTML = `
       <button class="audio-toggle" type="button" data-audio-toggle="master">
-        <span class="sound-icon" aria-hidden="true"></span>
+        <span class="speaker-icon" aria-hidden="true">
+          <span class="speaker-wave speaker-wave-1"></span>
+          <span class="speaker-wave speaker-wave-2"></span>
+        </span>
       </button>
-      <button class="audio-toggle" type="button" data-audio-toggle="music">♪</button>
+      <button class="audio-toggle" type="button" data-audio-toggle="music">
+        <span class="music-icon" aria-hidden="true">♪</span>
+      </button>
       <!-- SFX toggle kept for later tuning:
       <button class="audio-toggle" type="button" data-audio-toggle="sfx">*</button>
       -->

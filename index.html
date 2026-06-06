@@ -127,50 +127,81 @@
       opacity: 0.78;
     }
 
-    .sound-icon {
+    .speaker-icon {
       position: relative;
-      width: 18px;
-      height: 16px;
+      width: 22px;
+      height: 20px;
       display: block;
     }
 
-    .sound-icon::before {
+    .speaker-icon::before {
       content: "";
       position: absolute;
-      left: 0;
-      top: 5px;
-      width: 6px;
-      height: 6px;
+      left: 1px;
+      top: 7px;
+      width: 7px;
+      height: 7px;
       background: #FFFFFF;
       box-shadow:
-        6px -4px 0 0 #FFFFFF,
-        6px 4px 0 0 #FFFFFF,
-        9px -2px 0 0 #FFFFFF,
-        9px 2px 0 0 #FFFFFF;
+        7px -5px 0 0 #FFFFFF,
+        7px 5px 0 0 #FFFFFF,
+        10px -2px 0 0 #FFFFFF,
+        10px 2px 0 0 #FFFFFF;
     }
 
-    .sound-icon::after {
+    .speaker-icon::after {
       content: "";
       position: absolute;
-      right: 0;
+      left: 2px;
       top: 2px;
-      width: 3px;
-      height: 12px;
+      width: 0;
+      height: 0;
+    }
+
+    .speaker-wave {
+      position: absolute;
+      display: block;
       border-right: 3px solid #FFFFFF;
       border-top: 3px solid transparent;
       border-bottom: 3px solid transparent;
-      box-shadow: 5px 0 0 -1px #FFFFFF;
     }
 
-    .audio-toggle.is-off .sound-icon::after {
-      right: 7px;
-      top: -1px;
+    .speaker-wave-1 {
+      right: 5px;
+      top: 6px;
       width: 4px;
-      height: 20px;
-      border: 0;
+      height: 8px;
+    }
+
+    .speaker-wave-2 {
+      right: 0;
+      top: 3px;
+      width: 5px;
+      height: 14px;
+    }
+
+    .audio-toggle.is-off .speaker-wave {
+      display: none;
+    }
+
+    .audio-toggle.is-off .speaker-icon::after {
+      left: 10px;
+      top: -2px;
+      width: 4px;
+      height: 24px;
       background: #D4D4D4;
       transform: rotate(45deg);
-      box-shadow: none;
+    }
+
+    .music-icon {
+      display: block;
+      font-size: 22px;
+      line-height: 1;
+      transform: translateY(-1px);
+    }
+
+    .audio-toggle.is-off .music-icon {
+      color: #D4D4D4;
     }
 
     .btn-primary {

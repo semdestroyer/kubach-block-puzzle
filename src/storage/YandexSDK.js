@@ -1,7 +1,7 @@
 export const TRANSLATIONS = {
   ru: {
-    title: 'BLOCK PUZZLE',
-    subtitle: 'Minecraft Edition',
+    title: 'Кубач',
+    subtitle: 'БЛОК ПАЗЛ',
     start: 'ИГРАТЬ',
     selectGrid: 'ВЫБЕРИ РАЗМЕР',
     back: 'НАЗАД',
@@ -17,9 +17,9 @@ export const TRANSLATIONS = {
     grid12: '12×12'
   },
   en: {
-    title: 'BLOCK PUZZLE',
-    subtitle: 'Minecraft Edition',
-    start: 'START',
+    title: 'Blockle',
+    subtitle: 'BLOCK PUZZLE',
+    start: 'PLAY',
     selectGrid: 'SELECT GRID',
     back: 'BACK',
     score: 'SCORE',
@@ -53,13 +53,15 @@ export class YandexSDK {
             this.initialized = true;
             
             try {
-              const envLang = ysdk.environment?.i18n?.lang;
+              const envLang = ysdk.environment.i18n.lang;
               if (envLang && TRANSLATIONS[envLang]) {
                 this.lang = envLang;
                 this._t = TRANSLATIONS[envLang];
+              } else {
+                this.detectBrowserLang();
               }
             } catch (e) {
-              console.warn('Could not get lang from environment');
+              this.detectBrowserLang();
             }
             
             console.log('Yandex SDK initialized, lang:', this.lang);
@@ -67,15 +69,34 @@ export class YandexSDK {
           })
           .catch(err => {
             console.warn('Yandex SDK init failed:', err);
-            this._t = TRANSLATIONS.en;
+            this.detectBrowserLang();
             resolve(false);
           });
       } else {
-        console.warn('YaGames SDK not found, using default lang');
-        this._t = TRANSLATIONS.en;
+        console.warn('YaGames SDK not found, using browser lang');
+        this.detectBrowserLang();
         resolve(false);
       }
     });
+  }
+
+  detectBrowserLang() {
+    const browserLang = navigator.language || navigator.userLanguage || 'en';
+    const lang = browserLang.split('-')[0];
+    if (TRANSLATIONS[lang]) {
+      this.lang = lang;
+      this._t = TRANSLATIONS[lang];
+    } else {
+      this.lang = 'en';
+      this._t = TRANSLATIONS.en;
+    }
+  }
+
+  gameReady() {
+    if (this.ysdk && this.ysdk.features && this.ysdk.features.LoadingAPI) {
+      this.ysdk.features.LoadingAPI.ready();
+      console.log('GameReady API called');
+    }
   }
 
   t(key) {

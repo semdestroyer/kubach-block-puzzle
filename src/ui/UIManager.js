@@ -12,10 +12,27 @@ export class UIManager {
   }
 
   t(key) {
-    if (this.yandexSDK && this.yandexSDK.t) {
+    if (this.yandexSDK && this.yandexSDK.t && typeof this.yandexSDK.t === 'function') {
       return this.yandexSDK.t(key);
     }
-    return key;
+    const fallback = {
+      title: 'BLOCK PUZZLE',
+      subtitle: 'Minecraft Edition',
+      start: 'PLAY',
+      selectGrid: 'SELECT GRID',
+      back: 'BACK',
+      score: 'SCORE',
+      lines: 'LINES',
+      gameOver: 'GAME OVER',
+      playAgain: 'PLAY AGAIN',
+      mainMenu: 'MAIN MENU',
+      newBest: 'NEW HIGH SCORE!',
+      bestScore: 'BEST',
+      grid8: '8×8',
+      grid10: '10×10',
+      grid12: '12×12'
+    };
+    return fallback[key] || key;
   }
 
   setLang(lang) {

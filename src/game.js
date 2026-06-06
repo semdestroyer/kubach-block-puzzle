@@ -26,6 +26,7 @@ class BlockPuzzleApp {
     
     this.uiManager = new UIManager(this.game, this.yandexSDK);
     this.uiManager.init(container);
+    this.uiManager.updateAllTranslations();
     
     this.inputHandler = new InputHandler(canvas, this.game, this.renderer);
     
@@ -35,6 +36,8 @@ class BlockPuzzleApp {
     if (loadingScreen) {
       loadingScreen.classList.add('hidden');
     }
+    
+    this.yandexSDK.gameReady();
     
     this.gameLoop();
   }

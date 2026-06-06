@@ -20,6 +20,12 @@ export class Renderer {
     this.isValidPlacement = false;
     this.gridSize = 10;
     this.particleSystem = new ParticleSystem();
+    this.screenShakeTime = 0;
+    this.screenShakeStrength = 0;
+    this.flashTime = 0;
+    this.flashColor = 'rgba(255, 255, 255, 0)';
+    this.lineFlashes = [];
+    this.placementFlashes = [];
   }
 
   async init() {
@@ -331,6 +337,22 @@ this.ctx.fillStyle = '#8B8B8B';
 
   updateEffects(deltaTime) {
     this.particleSystem.update(deltaTime);
+    this.screenShakeTime = Math.max(0, this.screenShakeTime - deltaTime);
+    this.flashTime = Math.max(0, this.flashTime - deltaTime);
+
+    for (let i = this.lineFlashes.length - 1; i >= 0; i--) {
+      this.lineFlashes[i].life -= deltaTime;
+      if (this.lineFlashes[i].life <= 0) {
+        this.lineFlashes.splice(i, 1);
+      }
+    }
+
+    for (let i = this.placementFlashes.length - 1; i >= 0; i--) {
+      this.placementFlashes[i].life -= deltaTime;
+      if (this.placementFlashes[i].life <= 0) {
+        this.placementFlashes.splice(i, 1);
+      }
+    }
   }
 
   getCellCenter(x, y) {
@@ -344,53 +366,142 @@ this.ctx.fillStyle = '#8B8B8B';
     if (!cells || cells.length === 0) return;
 
     const isRedstone = blockType === BLOCK_TYPES.REDSTONE;
+    const isGem = [BLOCK_TYPES.GOLD, BLOCK_TYPES.EMERALD, BLOCK_TYPES.LAPIS].includes(blockType);
+    const color = this.getBlockParticleColor(blockType);
+
     cells.forEach(cell => {
       const center = this.getCellCenter(cell.x, cell.y);
-      this.particleSystem.spawn(isRedstone ? 'redstone' : 'dust', center.x, center.y, {
-        count: isRedstone ? 7 : 5,
-        spread: this.cellSize * 0.6,
-        speed: isRedstone ? 90 : 55,
-        size: Math.max(7, this.cellSize * 0.25),
-        life: isRedstone ? 0.45 : 0.5,
-        lift: isRedstone ? 30 : 10,
-        gravity: isRedstone ? 18 : 55
+      this.placementFlashes.push({
+        x: cell.x,
+        y: cell.y,
+        color: isRedstone ? '#ff3030' : color,
+        life: isRedstone ? 0.18 : 0.14,
+        maxLife: isRedstone ? 0.18 : 0.14
       });
+
+      const edgeY = center.y + this.cellSize * 0.38;
+      const particleCount = isRedstone ? 4 : 3;
+
+      for (let i = 0; i < particleCount; i++) {
+        const side = i % 2 === 0 ? -1 : 1;
+        this.particleSystem.spawn(isRedstone ? 'redstone' : 'dust', center.x + side * this.cellSize * 0.26, edgeY, {
+          count: 1,
+          angle: Math.PI * (0.25 + Math.random() * 0.5),
+          spread: this.cellSize * 0.14,
+          speed: 32 + Math.random() * 24,
+          size: Math.max(4, this.cellSize * 0.12),
+          life: 0.24 + Math.random() * 0.08,
+          lift: 0,
+          gravity: 95,
+          color,
+          colorChance: isRedstone ? 0.75 : 0.65,
+          alpha: 0.85
+        });
+      }
+
+      if (isRedstone) {
+        for (let i = 0; i < 3; i++) {
+          this.particleSystem.spawn('redstone', center.x, center.y, {
+            count: 1,
+            spread: this.cellSize * 0.28,
+            speed: 70 + Math.random() * 35,
+            size: Math.max(3, this.cellSize * 0.1),
+            life: 0.24,
+            lift: 25,
+            gravity: 12,
+            color: '#ff2525',
+            colorChance: 0.95
+          });
+        }
+      } else if (isGem && Math.random() < 0.55) {
+        this.particleSystem.spawn('sparkle', center.x, center.y - this.cellSize * 0.22, {
+          count: 1,
+          spread: this.cellSize * 0.18,
+          speed: 55,
+          size: Math.max(4, this.cellSize * 0.12),
+          life: 0.34,
+          lift: 32,
+          gravity: 5,
+          color,
+          colorChance: 0.75
+        });
+      }
     });
   }
 
-  spawnLineClearParticles(rows, cols) {
-    const total = (rows?.length || 0) + (cols?.length || 0);
-    if (total === 0) return;
+  spawnLineClearParticles(clearedCells, rows = [], cols = [], points = 0) {
+    if (!clearedCells || clearedCells.length === 0) return;
 
-    rows.forEach(row => {
-      for (let x = 0; x < this.gridSize; x++) {
-        const center = this.getCellCenter(x, row);
-        this.particleSystem.spawn('bubble', center.x, center.y, {
-          count: 2,
-          spread: this.cellSize * 0.45,
-          speed: 65,
-          size: Math.max(8, this.cellSize * 0.28),
-          life: 0.75,
-          lift: 45,
-          gravity: 5
+    this.addLineFlash(rows, cols, points);
+    const lineCount = rows.length + cols.length;
+    const isBigClear = lineCount >= 4 || points >= 1000;
+    this.screenShakeTime = isBigClear ? 0.22 : 0.11;
+    this.screenShakeStrength = isBigClear ? 6 : 3;
+    this.flashTime = isBigClear ? 0.24 : 0.14;
+    this.flashColor = isBigClear ? 'rgba(255, 230, 130, 0.34)' : 'rgba(255, 255, 255, 0.20)';
+
+    clearedCells.forEach(cell => {
+      const center = this.getCellCenter(cell.x, cell.y);
+      const color = this.getBlockParticleColor(cell.blockType);
+      const isRedstone = cell.blockType === BLOCK_TYPES.REDSTONE;
+      const isGem = [BLOCK_TYPES.GOLD, BLOCK_TYPES.EMERALD, BLOCK_TYPES.LAPIS].includes(cell.blockType);
+
+      this.particleSystem.spawn(isRedstone ? 'redstone' : 'shard', center.x, center.y, {
+        count: isRedstone ? 15 : 10,
+        spread: this.cellSize * 0.58,
+        speed: isRedstone ? 155 : 105,
+        size: Math.max(5, this.cellSize * (isRedstone ? 0.22 : 0.18)),
+        life: isRedstone ? 0.62 : 0.52,
+        lift: isRedstone ? 55 : 25,
+        gravity: isRedstone ? 18 : 90,
+        color,
+        colorChance: isRedstone ? 0.8 : 0.65
+      });
+
+      if (isRedstone) {
+        this.particleSystem.burst('redstone', center.x, center.y, {
+          count: 10,
+          speed: 185,
+          size: Math.max(4, this.cellSize * 0.14),
+          life: 0.35,
+          gravity: 0,
+          color: '#ff2f2f',
+          colorChance: 0.9
+        });
+      } else if (isGem) {
+        this.particleSystem.spawn('sparkle', center.x, center.y, {
+          count: 5,
+          spread: this.cellSize * 0.4,
+          speed: 130,
+          size: Math.max(5, this.cellSize * 0.16),
+          life: 0.7,
+          lift: 60,
+          gravity: 8,
+          color,
+          colorChance: 0.45
         });
       }
     });
+  }
 
-    cols.forEach(col => {
-      for (let y = 0; y < this.gridSize; y++) {
-        const center = this.getCellCenter(col, y);
-        this.particleSystem.spawn('puff', center.x, center.y, {
-          count: 2,
-          spread: this.cellSize * 0.45,
-          speed: 55,
-          size: Math.max(8, this.cellSize * 0.28),
-          life: 0.65,
-          lift: 25,
-          gravity: 20
-        });
-      }
-    });
+  addLineFlash(rows, cols, points) {
+    const life = points >= 1000 ? 0.35 : 0.24;
+    rows.forEach(row => this.lineFlashes.push({ type: 'row', index: row, life, maxLife: life }));
+    cols.forEach(col => this.lineFlashes.push({ type: 'col', index: col, life, maxLife: life }));
+  }
+
+  getBlockParticleColor(blockType) {
+    const colors = {
+      [BLOCK_TYPES.DIRT]: '#8f6235',
+      [BLOCK_TYPES.STONE]: '#9a9a9a',
+      [BLOCK_TYPES.COBBLESTONE]: '#4f4f4f',
+      [BLOCK_TYPES.WOOD_PLANKS]: '#9a6a36',
+      [BLOCK_TYPES.GOLD]: '#ffd33d',
+      [BLOCK_TYPES.LAPIS]: '#2f70ff',
+      [BLOCK_TYPES.EMERALD]: '#35e071',
+      [BLOCK_TYPES.REDSTONE]: '#ff2020'
+    };
+    return colors[blockType] || '#bdbdbd';
   }
 
   spawnFirework(x = this.canvas.width / 2, y = this.canvas.height * 0.28) {
@@ -404,15 +515,104 @@ this.ctx.fillStyle = '#8B8B8B';
     });
   }
 
+  spawnGameOverImpact() {
+    this.screenShakeTime = 0.42;
+    this.screenShakeStrength = 10;
+    this.flashTime = 0.38;
+    this.flashColor = 'rgba(20, 12, 8, 0.46)';
+
+    const impactX = this.canvas.width / 2;
+    const impactY = Math.max(80, this.gridOffsetY + this.gridSize * this.cellSize * 0.35);
+    this.particleSystem.burst('smoke', impactX, impactY, {
+      count: 38,
+      speed: 150,
+      size: Math.max(8, this.cellSize * 0.28),
+      life: 0.8,
+      gravity: 110,
+      spread: this.cellSize
+    });
+    this.particleSystem.burst('shard', impactX, impactY, {
+      count: 28,
+      speed: 190,
+      size: Math.max(5, this.cellSize * 0.18),
+      life: 0.65,
+      gravity: 160,
+      color: '#555555',
+      colorChance: 0.75
+    });
+  }
+
+  drawLineFlashes() {
+    if (this.lineFlashes.length === 0) return;
+
+    const totalSize = this.gridSize * (this.cellSize + UI_CONFIG.GRID_GAP) - UI_CONFIG.GRID_GAP;
+    this.lineFlashes.forEach(flash => {
+      const progress = Math.max(0, flash.life / flash.maxLife);
+      this.ctx.fillStyle = `rgba(255, 246, 160, ${0.34 * progress})`;
+
+      if (flash.type === 'row') {
+        const y = this.gridOffsetY + flash.index * (this.cellSize + UI_CONFIG.GRID_GAP);
+        this.ctx.fillRect(this.gridOffsetX, y, totalSize, this.cellSize);
+      } else {
+        const x = this.gridOffsetX + flash.index * (this.cellSize + UI_CONFIG.GRID_GAP);
+        this.ctx.fillRect(x, this.gridOffsetY, this.cellSize, totalSize);
+      }
+    });
+  }
+
+  drawPlacementFlashes() {
+    if (this.placementFlashes.length === 0) return;
+
+    this.placementFlashes.forEach(flash => {
+      const progress = Math.max(0, flash.life / flash.maxLife);
+      const x = this.gridOffsetX + flash.x * (this.cellSize + UI_CONFIG.GRID_GAP);
+      const y = this.gridOffsetY + flash.y * (this.cellSize + UI_CONFIG.GRID_GAP);
+      const inset = (1 - progress) * this.cellSize * 0.18;
+
+      this.ctx.save();
+      this.ctx.globalAlpha = 0.45 * progress;
+      this.ctx.strokeStyle = flash.color;
+      this.ctx.lineWidth = Math.max(2, this.cellSize * 0.06);
+      this.ctx.strokeRect(x + inset, y + inset, this.cellSize - inset * 2, this.cellSize - inset * 2);
+      this.ctx.restore();
+    });
+  }
+
+  drawScreenFlash() {
+    if (this.flashTime <= 0) return;
+
+    this.ctx.save();
+    this.ctx.globalAlpha = Math.min(1, this.flashTime * 3);
+    this.ctx.fillStyle = this.flashColor;
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.restore();
+  }
+
   drawParticles() {
     this.particleSystem.draw(this.ctx, this.assetManager.getTexture('particles'));
   }
 
+  hasActiveEffects() {
+    return this.particleSystem.particles.length > 0 ||
+      this.screenShakeTime > 0 ||
+      this.flashTime > 0 ||
+      this.lineFlashes.length > 0 ||
+      this.placementFlashes.length > 0;
+  }
+
   render(game) {
+    this.ctx.save();
+    if (this.screenShakeTime > 0) {
+      const shake = this.screenShakeStrength * (this.screenShakeTime / 0.42);
+      this.ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    }
+
     this.clear();
     
     const board = game.getBoard();
     this.drawGrid(board);
+    this.drawLineFlashes();
+    this.drawPlacementFlashes();
     this.drawScore(game.getScore());
     
     const pieces = game.getCurrentPieces();
@@ -425,5 +625,7 @@ this.ctx.fillStyle = '#8B8B8B';
     this.drawParticles();
     
     this.drawDragPiece();
+    this.ctx.restore();
+    this.drawScreenFlash();
   }
 }

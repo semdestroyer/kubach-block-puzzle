@@ -172,9 +172,13 @@ export class UIManager {
     this.audioControls = document.createElement('div');
     this.audioControls.className = 'audio-controls';
     this.audioControls.innerHTML = `
-      <button class="audio-toggle" type="button" data-audio-toggle="master">◆</button>
+      <button class="audio-toggle" type="button" data-audio-toggle="master">
+        <span class="sound-icon" aria-hidden="true"></span>
+      </button>
       <button class="audio-toggle" type="button" data-audio-toggle="music">♪</button>
+      <!-- SFX toggle kept for later tuning:
       <button class="audio-toggle" type="button" data-audio-toggle="sfx">*</button>
+      -->
     `;
 
     this.audioControls.querySelectorAll('.audio-toggle').forEach(button => {
@@ -188,10 +192,13 @@ export class UIManager {
           this.audioManager.setMasterEnabled(!settings.soundEnabled);
         } else if (type === 'music') {
           this.audioManager.setMusicEnabled(!settings.musicEnabled);
-        } else if (type === 'sfx') {
+        }
+        /*
+        else if (type === 'sfx') {
           this.audioManager.setSfxEnabled(!settings.sfxEnabled);
           this.audioManager.playSfx('pickup', { volume: 0.22 });
         }
+        */
 
         this.updateAudioControlLabels();
       });
@@ -223,13 +230,14 @@ export class UIManager {
     const stateText = (enabled) => enabled ? this.t('soundOn') : this.t('soundOff');
     const config = {
       master: { enabled: settings.soundEnabled, label: this.t('soundMaster') },
-      music: { enabled: settings.musicEnabled, label: this.t('music') },
-      sfx: { enabled: settings.sfxEnabled, label: this.t('sfx') }
+      music: { enabled: settings.musicEnabled, label: this.t('music') }
     };
 
     this.audioControls.querySelectorAll('.audio-toggle').forEach(button => {
       const type = button.dataset.audioToggle;
       const item = config[type];
+      if (!item) return;
+
       button.classList.toggle('is-off', !item.enabled);
       button.setAttribute('aria-pressed', String(item.enabled));
       button.setAttribute('aria-label', `${item.label}: ${stateText(item.enabled)}`);

@@ -64,17 +64,20 @@ class BlockPuzzleApp {
       const bonusMultiplier = multipliers[boardSize] || 1.0;
       const finalScore = Math.floor(score * bonusMultiplier);
       
-      const isNewBest = this.uiManager.showGameOver(finalScore, linesCleared, boardSize);
-      this.audioManager.playSfx('gameOver', { volume: 0.35, rate: 0.85 });
-      if (isNewBest) {
-        this.audioManager.playSfx('newBest', { volume: 0.45, rate: 1.08 });
-        this.renderer.spawnFirework();
-      }
-      
-      if (this.yandexSDK.isAvailable()) {
-        this.yandexSDK.setLeaderboardScore(finalScore);
-        this.showAdAfterGameOver();
-      }
+      this.audioManager.playSfx('anvilGameOver', { volume: 0.72, rate: 0.94 });
+      this.renderer.spawnGameOverImpact();
+
+      window.setTimeout(() => {
+        const isNewBest = this.uiManager.showGameOver(finalScore, linesCleared, boardSize);
+        if (isNewBest) {
+          this.audioManager.playSfx('newBest', { volume: 0.45, rate: 1.08 });
+        }
+
+        if (this.yandexSDK.isAvailable()) {
+          this.yandexSDK.setLeaderboardScore(finalScore);
+          this.showAdAfterGameOver();
+        }
+      }, 420);
     });
     
     this.game.on('gameStart', ({ pieces, boardSize }) => {
@@ -93,11 +96,11 @@ class BlockPuzzleApp {
       this.renderer.setPieces(pieces);
     });
 
-    this.game.on('linesCleared', ({ rows, cols, points }) => {
+    this.game.on('linesCleared', ({ rows, cols, clearedCells, points }) => {
       const lineCount = rows.length + cols.length;
-      this.audioManager.playLineClear(lineCount, points);
-      this.renderer.spawnLineClearParticles(rows, cols);
-      if (lineCount >= 3 || points >= 600) {
+      this.audioManager.playLineClear(lineCount, points, clearedCells);
+      this.renderer.spawnLineClearParticles(clearedCells, rows, cols, points);
+      if (lineCount >= 4 || points >= 1000) {
         this.renderer.spawnFirework();
       }
     });
@@ -133,7 +136,7 @@ class BlockPuzzleApp {
     this.lastFrameTime = now;
     this.renderer.updateEffects(deltaTime);
 
-    if (this.game.getState() === GameState.PLAYING) {
+    if (this.game.getState() === GameState.PLAYING || this.renderer.hasActiveEffects()) {
       this.renderer.render(this.game);
     }
     

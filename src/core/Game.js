@@ -106,6 +106,7 @@ export class Game {
     const fullCols = this.board.findFullCols();
     
     if (fullRows.length > 0 || fullCols.length > 0) {
+      const clearedCells = this.getClearedCells(fullRows, fullCols);
       this.board.clearLines(fullRows, fullCols);
       this.linesCleared += fullRows.length + fullCols.length;
       
@@ -115,10 +116,36 @@ export class Game {
       this.emit('linesCleared', {
         rows: fullRows,
         cols: fullCols,
+        clearedCells,
         points,
         totalScore: this.score
       });
     }
+  }
+
+  getClearedCells(rows, cols) {
+    const cells = [];
+    const seen = new Set();
+
+    rows.forEach(y => {
+      for (let x = 0; x < this.board.size; x++) {
+        const key = `${x}:${y}`;
+        seen.add(key);
+        cells.push({ x, y, blockType: this.board.getCell(x, y) });
+      }
+    });
+
+    cols.forEach(x => {
+      for (let y = 0; y < this.board.size; y++) {
+        const key = `${x}:${y}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          cells.push({ x, y, blockType: this.board.getCell(x, y) });
+        }
+      }
+    });
+
+    return cells;
   }
 
   calculateScore(rows, cols) {

@@ -1,11 +1,12 @@
 const TILE_SIZE = 16;
-const MAX_PARTICLES = 220;
+const MAX_PARTICLES = 420;
 
 const TILES = {
   dust: [0, 4, 8, 12],
+  shard: [0, 4, 8, 12, 24, 25],
   redstone: [1, 2, 3, 5],
-  bubble: [16, 17, 18],
-  puff: [20, 21, 22],
+  sparkle: [6, 7, 10, 11, 14, 15],
+  smoke: [20, 21, 22],
   firework: [6, 7, 10, 11, 14, 15]
 };
 
@@ -37,7 +38,11 @@ export class ParticleSystem {
         size: size * (0.7 + Math.random() * 0.6),
         gravity,
         tile: tiles[Math.floor(Math.random() * tiles.length)],
-        alpha: options.alpha ?? 1
+        alpha: options.alpha ?? 1,
+        color: options.color ?? null,
+        useColor: Boolean(options.color) && Math.random() < (options.colorChance ?? 0),
+        rotation: Math.random() * Math.PI,
+        spin: (Math.random() - 0.5) * 8
       });
     }
 
@@ -76,6 +81,7 @@ export class ParticleSystem {
       particle.vy += particle.gravity * deltaTime;
       particle.x += particle.vx * deltaTime;
       particle.y += particle.vy * deltaTime;
+      particle.rotation += particle.spin * deltaTime;
     }
   }
 
@@ -87,21 +93,31 @@ export class ParticleSystem {
 
     for (const particle of this.particles) {
       const progress = particle.life / particle.maxLife;
-      const sx = (particle.tile % 8) * TILE_SIZE;
-      const sy = Math.floor(particle.tile / 8) * TILE_SIZE;
-
       ctx.globalAlpha = Math.max(0, progress) * particle.alpha;
-      ctx.drawImage(
-        atlas,
-        sx,
-        sy,
-        TILE_SIZE,
-        TILE_SIZE,
-        particle.x - particle.size / 2,
-        particle.y - particle.size / 2,
-        particle.size,
-        particle.size
-      );
+      ctx.save();
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation);
+
+      if (particle.useColor) {
+        ctx.fillStyle = particle.color;
+        ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size);
+      } else {
+        const sx = (particle.tile % 8) * TILE_SIZE;
+        const sy = Math.floor(particle.tile / 8) * TILE_SIZE;
+        ctx.drawImage(
+          atlas,
+          sx,
+          sy,
+          TILE_SIZE,
+          TILE_SIZE,
+          -particle.size / 2,
+          -particle.size / 2,
+          particle.size,
+          particle.size
+        );
+      }
+
+      ctx.restore();
     }
 
     ctx.restore();

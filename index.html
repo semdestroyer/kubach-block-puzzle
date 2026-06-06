@@ -127,6 +127,52 @@
       opacity: 0.78;
     }
 
+    .sound-icon {
+      position: relative;
+      width: 18px;
+      height: 16px;
+      display: block;
+    }
+
+    .sound-icon::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 5px;
+      width: 6px;
+      height: 6px;
+      background: #FFFFFF;
+      box-shadow:
+        6px -4px 0 0 #FFFFFF,
+        6px 4px 0 0 #FFFFFF,
+        9px -2px 0 0 #FFFFFF,
+        9px 2px 0 0 #FFFFFF;
+    }
+
+    .sound-icon::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 2px;
+      width: 3px;
+      height: 12px;
+      border-right: 3px solid #FFFFFF;
+      border-top: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+      box-shadow: 5px 0 0 -1px #FFFFFF;
+    }
+
+    .audio-toggle.is-off .sound-icon::after {
+      right: 7px;
+      top: -1px;
+      width: 4px;
+      height: 20px;
+      border: 0;
+      background: #D4D4D4;
+      transform: rotate(45deg);
+      box-shadow: none;
+    }
+
     .btn-primary {
       background: #6EA84D;
       color: #ffffff;

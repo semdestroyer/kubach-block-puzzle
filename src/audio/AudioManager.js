@@ -1,7 +1,9 @@
 import { BLOCK_TYPES } from '../core/Constants.js';
 import { Storage } from '../storage/Storage.js';
 
-const MUSIC_PATH = 'assets/music/heavenly-loop.ogg';
+const MUSIC_TRACKS = [];
+const MUSIC_FADE_MS = 3000;
+const MUSIC_GAP_MS = [30000, 90000];
 
 const SFX = {
   pickup: [
@@ -42,13 +44,21 @@ const SFX = {
     'assets/sfx/dig/stone4.ogg'
   ],
   lineClear: [
-    'assets/sfx/dig/stone1.ogg',
-    'assets/sfx/dig/stone2.ogg',
-    'assets/sfx/dig/wood3.ogg'
+    'assets/sfx/break.ogg'
   ],
-  gameOver: [
-    'assets/sfx/dig/snow1.ogg',
-    'assets/sfx/dig/snow2.ogg'
+  lineClearGem: [
+    'assets/sfx/glass1.ogg',
+    'assets/sfx/glass2.ogg',
+    'assets/sfx/glass3.ogg'
+  ],
+  lineClearCombo: [
+    'assets/sfx/successful_hit.ogg'
+  ],
+  lineClearBig: [
+    'assets/sfx/levelup.ogg'
+  ],
+  anvilGameOver: [
+    'assets/sfx/anvil_land.ogg'
   ],
   newBest: [
     'assets/sfx/fireworks/twinkle1.ogg'
@@ -70,10 +80,10 @@ export class AudioManager {
   constructor(storage = new Storage()) {
     this.storage = storage;
     this.buffers = new Map();
-    this.music = new Audio(MUSIC_PATH);
-    this.music.loop = true;
-    this.music.preload = 'auto';
-    this.music.volume = 0.28;
+    this.music = null;
+    this.musicTimer = null;
+    this.fadeTimer = null;
+    this.currentTrack = null;
     this.userInteracted = false;
     this.platformPaused = false;
   }
@@ -86,7 +96,10 @@ export class AudioManager {
         this.buffers.set(path, audio);
       }
     });
-    this.music.load();
+    MUSIC_TRACKS.forEach(path => {
+      const audio = new Audio(path);
+      audio.preload = 'auto';
+    });
   }
 
   unlock() {
@@ -126,13 +139,34 @@ export class AudioManager {
     this.playSfx(sound, { volume: blockType === BLOCK_TYPES.REDSTONE ? 0.62 : 0.5 });
   }
 
-  playLineClear(lineCount, points) {
+  playLineClear(lineCount, points, clearedCells = []) {
     const volume = Math.min(0.85, 0.45 + lineCount * 0.12);
-    this.playSfx('lineClear', { volume, rate: 1 + lineCount * 0.04 });
+    this.playSfx('lineClear', { volume, rate: 0.96 + lineCount * 0.035 });
 
-    if (lineCount >= 3 || points >= 600) {
+    if (this.hasGemBlocks(clearedCells)) {
+      window.setTimeout(() => this.playSfx('lineClearGem', { volume: 0.28, rate: 1.04 }), 45);
+    }
+
+    if (lineCount >= 2 && !this.isBigClear(lineCount, points)) {
+      window.setTimeout(() => this.playSfx('lineClearCombo', { volume: 0.36, rate: 1 + lineCount * 0.04 }), 90);
+    }
+
+    if (this.isBigClear(lineCount, points)) {
+      window.setTimeout(() => this.playSfx('lineClearBig', { volume: 0.5, rate: 1 }), 90);
       this.playFirework();
     }
+  }
+
+  hasGemBlocks(clearedCells) {
+    return clearedCells.some(cell =>
+      cell.blockType === BLOCK_TYPES.GOLD ||
+      cell.blockType === BLOCK_TYPES.LAPIS ||
+      cell.blockType === BLOCK_TYPES.EMERALD
+    );
+  }
+
+  isBigClear(lineCount, points) {
+    return lineCount >= 4 || points >= 1000;
   }
 
   playFirework() {
@@ -151,17 +185,66 @@ export class AudioManager {
   }
 
   startMusic() {
-    if (!this.userInteracted || !this.canPlayMusic()) {
+    if (!this.userInteracted || !this.canPlayMusic() || MUSIC_TRACKS.length === 0) {
       this.stopMusic();
       return;
     }
 
-    this.music.volume = 0.28;
-    this.music.play().catch(() => {});
+    if (this.music && !this.music.paused) return;
+    this.playNextTrack();
   }
 
   stopMusic() {
-    this.music.pause();
+    window.clearTimeout(this.musicTimer);
+    window.clearInterval(this.fadeTimer);
+    this.musicTimer = null;
+    this.fadeTimer = null;
+
+    if (this.music) {
+      this.music.pause();
+      this.music.currentTime = 0;
+    }
+  }
+
+  playNextTrack() {
+    if (!this.canPlayMusic() || MUSIC_TRACKS.length === 0) return;
+
+    const track = MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)];
+    this.currentTrack = track;
+    this.music = new Audio(track);
+    this.music.preload = 'auto';
+    this.music.volume = 0;
+    this.music.addEventListener('ended', () => this.scheduleNextTrack());
+    this.music.play().then(() => {
+      this.fadeMusicTo(0.28, MUSIC_FADE_MS);
+    }).catch(() => {});
+  }
+
+  scheduleNextTrack() {
+    this.stopMusic();
+    if (!this.canPlayMusic() || MUSIC_TRACKS.length === 0) return;
+
+    const [min, max] = MUSIC_GAP_MS;
+    const delay = min + Math.random() * (max - min);
+    this.musicTimer = window.setTimeout(() => this.playNextTrack(), delay);
+  }
+
+  fadeMusicTo(volume, duration) {
+    if (!this.music) return;
+
+    window.clearInterval(this.fadeTimer);
+    const startVolume = this.music.volume;
+    const startedAt = performance.now();
+
+    this.fadeTimer = window.setInterval(() => {
+      const progress = Math.min(1, (performance.now() - startedAt) / duration);
+      this.music.volume = startVolume + (volume - startVolume) * progress;
+
+      if (progress >= 1) {
+        window.clearInterval(this.fadeTimer);
+        this.fadeTimer = null;
+      }
+    }, 50);
   }
 
   setMasterEnabled(enabled) {

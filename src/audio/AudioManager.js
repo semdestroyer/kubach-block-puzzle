@@ -119,11 +119,11 @@ export class AudioManager {
   }
 
   canPlaySfx() {
-    return this.isMasterEnabled() && this.storage.isSfxEnabled() && !this.platformPaused;
+    return this.storage.isSfxEnabled() && !this.platformPaused;
   }
 
   canPlayMusic() {
-    return this.isMasterEnabled() && this.storage.isMusicEnabled() && !this.platformPaused;
+    return this.storage.isMusicEnabled() && !this.platformPaused;
   }
 
   playSfx(name, options = {}) {
@@ -255,11 +255,7 @@ export class AudioManager {
 
   setMasterEnabled(enabled) {
     this.storage.setSoundEnabled(enabled);
-    if (enabled) {
-      this.startMusic();
-    } else {
-      this.stopMusic();
-    }
+    this.setSfxEnabled(enabled);
   }
 
   setMusicEnabled(enabled) {

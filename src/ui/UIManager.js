@@ -1,6 +1,9 @@
 import { GRID_SIZES } from '../core/Constants.js';
 import { Storage } from '../storage/Storage.js';
 
+const SOUND_ON_ICON = 'assets/icons/volume-2.svg';
+const SOUND_OFF_ICON = 'assets/icons/volume-off.svg';
+
 export class UIManager {
   constructor(game, yandexSDK = null, audioManager = null) {
     this.game = game;
@@ -33,7 +36,7 @@ export class UIManager {
       grid8: '8×8',
       grid10: '10×10',
       grid12: '12×12',
-      soundMaster: 'Sound',
+      soundEffects: 'Sound effects',
       music: 'Music',
       sfx: 'Effects',
       soundOn: 'on',
@@ -172,18 +175,12 @@ export class UIManager {
     this.audioControls = document.createElement('div');
     this.audioControls.className = 'audio-controls';
     this.audioControls.innerHTML = `
-      <button class="audio-toggle" type="button" data-audio-toggle="master">
-        <span class="speaker-icon" aria-hidden="true">
-          <span class="speaker-wave speaker-wave-1"></span>
-          <span class="speaker-wave speaker-wave-2"></span>
-        </span>
+      <button class="audio-toggle" type="button" data-audio-toggle="sound">
+        <img class="audio-icon" src="${SOUND_ON_ICON}" alt="" aria-hidden="true">
       </button>
       <button class="audio-toggle" type="button" data-audio-toggle="music">
         <span class="music-icon" aria-hidden="true">♪</span>
       </button>
-      <!-- SFX toggle kept for later tuning:
-      <button class="audio-toggle" type="button" data-audio-toggle="sfx">*</button>
-      -->
     `;
 
     this.audioControls.querySelectorAll('.audio-toggle').forEach(button => {
@@ -193,17 +190,15 @@ export class UIManager {
         const settings = this.audioManager?.getSettings();
         if (!settings) return;
 
-        if (type === 'master') {
-          this.audioManager.setMasterEnabled(!settings.soundEnabled);
+        if (type === 'sound') {
+          const nextEnabled = !settings.sfxEnabled;
+          this.audioManager.setSfxEnabled(nextEnabled);
+          if (nextEnabled) {
+            this.audioManager.playSfx('pickup', { volume: 0.22 });
+          }
         } else if (type === 'music') {
           this.audioManager.setMusicEnabled(!settings.musicEnabled);
         }
-        /*
-        else if (type === 'sfx') {
-          this.audioManager.setSfxEnabled(!settings.sfxEnabled);
-          this.audioManager.playSfx('pickup', { volume: 0.22 });
-        }
-        */
 
         this.updateAudioControlLabels();
       });
@@ -234,7 +229,7 @@ export class UIManager {
     const settings = this.audioManager.getSettings();
     const stateText = (enabled) => enabled ? this.t('soundOn') : this.t('soundOff');
     const config = {
-      master: { enabled: settings.soundEnabled, label: this.t('soundMaster') },
+      sound: { enabled: settings.sfxEnabled, label: this.t('soundEffects') },
       music: { enabled: settings.musicEnabled, label: this.t('music') }
     };
 
@@ -247,6 +242,11 @@ export class UIManager {
       button.setAttribute('aria-pressed', String(item.enabled));
       button.setAttribute('aria-label', `${item.label}: ${stateText(item.enabled)}`);
       button.title = `${item.label}: ${stateText(item.enabled)}`;
+
+      const icon = button.querySelector('.audio-icon');
+      if (icon) {
+        icon.src = item.enabled ? SOUND_ON_ICON : SOUND_OFF_ICON;
+      }
     });
   }
 
